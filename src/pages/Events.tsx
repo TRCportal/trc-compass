@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, MapPin, Plus, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Clock } from "lucide-react";
+import { AddEventDialog } from "@/components/AddEventDialog";
 
 interface Event {
   id: string;
@@ -70,10 +71,7 @@ const Events = () => {
               <SidebarTrigger />
               <h1 className="text-2xl font-bold text-primary">Events</h1>
             </div>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Event
-            </Button>
+            <AddEventDialog onEventAdded={fetchEvents} />
           </header>
 
           <div className="p-6 space-y-6">
@@ -85,10 +83,7 @@ const Events = () => {
                   <CalendarIcon className="h-16 w-16 text-muted-foreground mb-4" />
                   <p className="text-lg font-medium text-muted-foreground">No upcoming events</p>
                   <p className="text-sm text-muted-foreground mb-4">Create your first community event</p>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Event
-                  </Button>
+                  <AddEventDialog onEventAdded={fetchEvents} />
                 </CardContent>
               </Card>
             ) : (

@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Mail, Phone } from "lucide-react";
+import { Search, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AddMemberDialog } from "@/components/AddMemberDialog";
 
 interface Member {
   id: string;
@@ -88,10 +88,7 @@ const Members = () => {
               <SidebarTrigger />
               <h1 className="text-2xl font-bold text-primary">Members</h1>
             </div>
-            <Button className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Add Member
-            </Button>
+            <AddMemberDialog onMemberAdded={fetchMembers} />
           </header>
 
           <div className="p-6 space-y-6">

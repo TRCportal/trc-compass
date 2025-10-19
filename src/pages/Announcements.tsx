@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Bell, Plus } from "lucide-react";
+import { Bell } from "lucide-react";
+import { AddAnnouncementDialog } from "@/components/AddAnnouncementDialog";
 
 interface Announcement {
   id: string;
@@ -58,10 +58,7 @@ const Announcements = () => {
               <SidebarTrigger />
               <h1 className="text-2xl font-bold text-primary">Announcements</h1>
             </div>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Announcement
-            </Button>
+            <AddAnnouncementDialog onAnnouncementAdded={fetchAnnouncements} />
           </header>
 
           <div className="p-6 space-y-4">
@@ -75,10 +72,7 @@ const Announcements = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     Share important updates with your community
                   </p>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Announcement
-                  </Button>
+                  <AddAnnouncementDialog onAnnouncementAdded={fetchAnnouncements} />
                 </CardContent>
               </Card>
             ) : (

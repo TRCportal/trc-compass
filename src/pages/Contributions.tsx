@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { AddContributionDialog } from "@/components/AddContributionDialog";
 
 const Contributions = () => {
   const navigate = useNavigate();
@@ -71,10 +71,7 @@ const Contributions = () => {
               <SidebarTrigger />
               <h1 className="text-2xl font-bold text-primary">Contributions</h1>
             </div>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Record Payment
-            </Button>
+            <AddContributionDialog onContributionAdded={fetchContributions} />
           </header>
 
           <div className="p-6 space-y-6">
