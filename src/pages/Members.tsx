@@ -6,9 +6,25 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Search, User, Trash2 } from "lucide-react";
 import { AddMemberDialog } from "@/components/AddMemberDialog";
+import { EditMemberDialog } from "@/components/EditMemberDialog";
+import { EditRoleDialog } from "@/components/EditRoleDialog";
+import { ContributionCalendar } from "@/components/ContributionCalendar";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Member {
   id: string;
@@ -21,10 +37,11 @@ interface Member {
 
 const Members = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const { isAdmin, isTreasurer, userId } = useUserRole();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -50,34 +67,116 @@ const Members = () => {
       setMembers(data || []);
     } catch (error) {
       console.error("Error fetching members:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch members",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
   };
 
   const filteredMembers = members.filter((member) =>
-    member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.phone?.toLowerCase().includes(searchQuery.toLowerCase())
+    member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-500";
-      case "pending":
-        return "bg-yellow-500";
-      case "suspended":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
+  const handleDeleteMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Member deleted successfully",
+      });
+
+      fetchMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete member",
+        variant: "destructive",
+      });
     }
   };
 
+  // Member view - show only their own profile
+  if (!isAdmin && !isTreasurer && userId) {
+    const currentMember = members.find(m => m.id === userId);
+    
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AppSidebar />
+          <main className="flex-1">
+            <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-card">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <h1 className="text-2xl font-bold text-primary">My Profile</h1>
+              </div>
+            </header>
+
+            <div className="p-6 space-y-6">
+              {loading ? (
+                <p className="text-center text-muted-foreground">Loading...</p>
+              ) : currentMember ? (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Profile Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Name</p>
+                          <p className="font-medium">{currentMember.full_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{currentMember.phone || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">ID Number</p>
+                          <p className="font-medium">{currentMember.id_number || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <Badge
+                            variant={
+                              currentMember.status === "active"
+                                ? "default"
+                                : currentMember.status === "pending"
+                                ? "secondary"
+                                : "destructive"
+                            }
+                          >
+                            {currentMember.status}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date Joined</p>
+                          <p className="font-medium">
+                            {new Date(currentMember.date_joined).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <ContributionCalendar memberId={currentMember.id} />
+                </>
+              ) : (
+                <p className="text-center text-muted-foreground">Profile not found</p>
+              )}
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  // Admin/Treasurer view
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -88,59 +187,84 @@ const Members = () => {
               <SidebarTrigger />
               <h1 className="text-2xl font-bold text-primary">Members</h1>
             </div>
-            <AddMemberDialog onMemberAdded={fetchMembers} />
+            {isAdmin && <AddMemberDialog onMemberAdded={fetchMembers} />}
           </header>
 
           <div className="p-6 space-y-6">
-            {/* Search Bar */}
             <Card>
               <CardContent className="pt-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search members by name or phone..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search members..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Members Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {loading ? (
-                <p className="col-span-full text-center text-muted-foreground">Loading members...</p>
+                <p className="col-span-full text-center text-muted-foreground">Loading...</p>
               ) : filteredMembers.length === 0 ? (
                 <p className="col-span-full text-center text-muted-foreground">No members found</p>
               ) : (
                 filteredMembers.map((member) => (
                   <Card key={member.id} className="hover:shadow-elevated transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{member.full_name}</CardTitle>
-                          <Badge className={`${getStatusColor(member.status)} mt-2`}>
-                            {member.status}
-                          </Badge>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-6 w-6 text-primary" />
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {member.phone && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-4 w-4" />
-                          <span>{member.phone}</span>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{member.full_name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.phone}</p>
+                          {member.id_number && (
+                            <p className="text-sm text-muted-foreground">ID: {member.id_number}</p>
+                          )}
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge
+                              variant={
+                                member.status === "active"
+                                  ? "default"
+                                  : member.status === "pending"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                            >
+                              {member.status}
+                            </Badge>
+                          </div>
                         </div>
-                      )}
-                      {member.id_number && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="font-medium">ID:</span>
-                          <span>{member.id_number}</span>
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground pt-2">
-                        Joined: {new Date(member.date_joined).toLocaleDateString()}
+                        {isAdmin && (
+                          <div className="flex gap-2">
+                            <EditMemberDialog member={member} onMemberUpdated={fetchMembers} />
+                            <EditRoleDialog member={member} onRoleUpdated={fetchMembers} />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Member</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {member.full_name}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteMember(member.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
