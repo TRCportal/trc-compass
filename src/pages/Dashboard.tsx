@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, DollarSign, Calendar, TrendingUp } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import heroImage from "@/assets/hero-community.jpg";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isAdmin, isTreasurer } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalMembers: 0,
@@ -163,24 +165,49 @@ const Dashboard = () => {
                   <CardDescription>Frequently used features</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <button 
-                    onClick={() => navigate("/members")}
-                    className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
-                  >
-                    View Members
-                  </button>
-                  <button 
-                    onClick={() => navigate("/contributions")}
-                    className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
-                  >
-                    Record Contribution
-                  </button>
-                  <button 
-                    onClick={() => navigate("/events")}
-                    className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
-                  >
-                    View Events
-                  </button>
+                  {(isAdmin || isTreasurer) ? (
+                    <>
+                      <button 
+                        onClick={() => navigate("/members")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        View Members
+                      </button>
+                      <button 
+                        onClick={() => navigate("/contributions")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        Record Contribution
+                      </button>
+                      <button 
+                        onClick={() => navigate("/events")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        View Events
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => navigate("/members")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        My Profile
+                      </button>
+                      <button 
+                        onClick={() => navigate("/contributions")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        My Contributions
+                      </button>
+                      <button 
+                        onClick={() => navigate("/events")}
+                        className="w-full text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        Events
+                      </button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

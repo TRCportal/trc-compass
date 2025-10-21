@@ -59,64 +59,74 @@ export function ContributionCalendar({ memberId }: { memberId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Weekly Contribution Calendar</CardTitle>
+        <CardTitle>My Contribution Calendar - {new Date().getFullYear()}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-13 gap-1">
+        <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-13 gap-2 mb-6">
           {weeks.map(weekNum => {
             const contribution = getWeekStatus(weekNum);
             const isPaid = contribution?.status === "paid";
             const isCurrent = weekNum === currentWeek;
+            const isPast = weekNum < currentWeek;
 
             return (
               <div
                 key={weekNum}
                 className={`
-                  relative aspect-square rounded-sm flex items-center justify-center text-xs
-                  ${isPaid ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"}
-                  ${isCurrent ? "ring-2 ring-primary" : ""}
-                  hover:scale-110 transition-transform cursor-pointer
+                  relative aspect-square rounded-md flex flex-col items-center justify-center text-xs font-medium
+                  transition-all duration-200 hover:scale-105 cursor-pointer
+                  ${isPaid ? "bg-green-500/20 text-green-700 dark:text-green-400 border-2 border-green-500" : ""}
+                  ${!isPaid && isPast ? "bg-red-500/20 text-red-700 dark:text-red-400 border-2 border-red-500" : ""}
+                  ${!isPaid && !isPast ? "bg-muted text-muted-foreground border-2 border-border" : ""}
+                  ${isCurrent ? "ring-2 ring-primary ring-offset-2" : ""}
                 `}
-                title={`Week ${weekNum}${contribution ? ` - KSh ${contribution.amount}` : ""}`}
+                title={`Week ${weekNum}${contribution ? ` - KSh ${contribution.amount.toLocaleString()} (${contribution.payment_method})` : isPast ? " - Unpaid" : " - Upcoming"}`}
               >
-                {isPaid ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : weekNum < currentWeek ? (
-                  <XCircle className="h-3 w-3" />
-                ) : null}
+                <span className="text-[10px] font-bold">W{weekNum}</span>
+                {isPaid && <CheckCircle className="h-3 w-3 mt-0.5" />}
+                {!isPaid && isPast && <XCircle className="h-3 w-3 mt-0.5" />}
               </div>
             );
           })}
         </div>
         
-        <div className="mt-6 space-y-2">
+        <div className="flex flex-wrap gap-4 mb-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-accent/20 rounded-sm"></div>
-            <span className="text-sm">Paid</span>
+            <div className="w-5 h-5 bg-green-500/20 border-2 border-green-500 rounded"></div>
+            <span>Paid</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-muted rounded-sm"></div>
-            <span className="text-sm">Unpaid / Upcoming</span>
+            <div className="w-5 h-5 bg-red-500/20 border-2 border-red-500 rounded"></div>
+            <span>Missed</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-muted rounded-sm ring-2 ring-primary"></div>
-            <span className="text-sm">Current Week</span>
+            <div className="w-5 h-5 bg-muted border-2 border-border rounded"></div>
+            <span>Upcoming</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-muted border-2 border-border rounded ring-2 ring-primary"></div>
+            <span>Current Week</span>
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-secondary/10 rounded-lg">
-          <h4 className="font-semibold mb-2">Summary</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Weeks Paid:</p>
-              <p className="text-lg font-bold text-accent">{contributions.filter(c => c.status === "paid").length}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Total Contributed:</p>
-              <p className="text-lg font-bold text-primary">
-                KSh {contributions.reduce((sum, c) => sum + Number(c.amount), 0).toLocaleString()}
-              </p>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-secondary/10 rounded-lg">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">Weeks Paid</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {contributions.filter(c => c.status === "paid").length}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">Weeks Missed</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {currentWeek - 1 - contributions.filter(c => c.status === "paid").length}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">Total Contributed</p>
+            <p className="text-2xl font-bold text-primary">
+              KSh {contributions.reduce((sum, c) => sum + Number(c.amount), 0).toLocaleString()}
+            </p>
           </div>
         </div>
       </CardContent>

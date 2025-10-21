@@ -45,20 +45,40 @@ const Contributions = () => {
     try {
       let query = supabase
         .from("contributions")
-        .select("*, profiles(full_name)")
+        .select("*")
         .order("payment_date", { ascending: false });
 
       // If not admin or treasurer, only show own contributions
       if (!isAdmin && !isTreasurer && userId) {
         query = query.eq("member_id", userId);
       } else {
-        query = query.limit(50);
+        query = query.limit(100);
       }
 
-      const { data, error } = await query;
+      const { data: contributionsData, error: contribError } = await query;
+      if (contribError) throw contribError;
 
-      if (error) throw error;
-      setContributions(data || []);
+      // Fetch member names separately
+      if (contributionsData && contributionsData.length > 0) {
+        const memberIds = [...new Set(contributionsData.map(c => c.member_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", memberIds);
+
+        if (profilesError) throw profilesError;
+
+        // Map profiles to contributions
+        const profilesMap = new Map(profilesData?.map(p => [p.id, p.full_name]));
+        const enrichedData = contributionsData.map(c => ({
+          ...c,
+          profiles: { full_name: profilesMap.get(c.member_id) || "Unknown" }
+        }));
+
+        setContributions(enrichedData);
+      } else {
+        setContributions([]);
+      }
     } catch (error) {
       console.error("Error fetching contributions:", error);
     } finally {
