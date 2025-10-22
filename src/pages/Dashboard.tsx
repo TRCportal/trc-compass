@@ -42,19 +42,18 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [membersRes, contributionsRes, eventsRes] = await Promise.all([
+      const [membersRes, totalContributionsRes, eventsRes] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact" }),
-        supabase.from("contributions").select("amount", { count: "exact" }),
+        supabase.rpc("get_total_contributions"),
         supabase.from("events").select("*", { count: "exact" }).gte("event_date", new Date().toISOString()),
       ]);
 
-      const totalAmount = contributionsRes.data?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
       const activeCount = membersRes.data?.filter(m => m.status === "active").length || 0;
 
       setStats({
         totalMembers: membersRes.count || 0,
         activeMembers: activeCount,
-        totalContributions: totalAmount,
+        totalContributions: Number(totalContributionsRes.data || 0),
         upcomingEvents: eventsRes.count || 0,
       });
     } catch (error) {
