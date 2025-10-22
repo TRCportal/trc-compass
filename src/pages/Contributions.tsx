@@ -5,9 +5,15 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddContributionDialog } from "@/components/AddContributionDialog";
+import { EditContributionDialog } from "@/components/EditContributionDialog";
+import { ViewContributionDialog } from "@/components/ViewContributionDialog";
 import { ContributionCalendar } from "@/components/ContributionCalendar";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Eye, Pencil, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contribution {
   id: string;
@@ -27,6 +33,10 @@ const Contributions = () => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
   const { isAdmin, isTreasurer, userId } = useUserRole();
+  const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
+  const [viewingContribution, setViewingContribution] = useState<Contribution | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -86,6 +96,34 @@ const Contributions = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deletingId) return;
+
+    try {
+      const { error } = await supabase
+        .from("contributions")
+        .delete()
+        .eq("id", deletingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Contribution deleted successfully",
+      });
+
+      fetchContributions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete contribution",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -131,6 +169,7 @@ const Contributions = () => {
                             <TableHead>Method</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -152,6 +191,32 @@ const Contributions = () => {
                                   {contribution.status}
                                 </span>
                               </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setViewingContribution(contribution)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingContribution(contribution)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDeletingId(contribution.id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -164,6 +229,40 @@ const Contributions = () => {
           </div>
         </main>
       </div>
+
+      {editingContribution && (
+        <EditContributionDialog
+          contribution={editingContribution}
+          open={!!editingContribution}
+          onOpenChange={(open) => !open && setEditingContribution(null)}
+          onContributionUpdated={fetchContributions}
+        />
+      )}
+
+      {viewingContribution && (
+        <ViewContributionDialog
+          contribution={viewingContribution}
+          open={!!viewingContribution}
+          onOpenChange={(open) => !open && setViewingContribution(null)}
+        />
+      )}
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contribution</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this contribution? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 };
